@@ -11,7 +11,7 @@ use self::Req::*;
 
 use libc::{mod, pid_t, c_void, c_int};
 use c_str::CString;
-use io::{mod, IoResult, IoError};
+use io::{mod, IoResult, IoError, EndOfFile};
 use mem;
 use os;
 use ptr;
@@ -20,6 +20,7 @@ use io::process::{ProcessExit, ExitStatus, ExitSignal};
 use collections;
 use path::BytesContainer;
 use hash::Hash;
+use core::i32;
 
 use sys::{mod, retry, c, wouldblock, set_nonblocking, ms_to_timeval};
 use sys::fs::FileDesc;
@@ -106,18 +107,28 @@ impl Process {
                 if pid < 0 {
                     return Err(super::last_error())
                 } else if pid > 0 {
+                    let p = Process{ pid: pid };
                     drop(output);
-                    let mut bytes = [0, ..4];
+                    let mut bytes = [0, ..8];
                     return match input.read(&mut bytes) {
-                        Ok(4) => {
+                        Ok(8) => {
+                            assert_eq!(b"fail", bytes.slice_from(4));
                             let errno = (bytes[0] as i32 << 24) |
                                         (bytes[1] as i32 << 16) |
                                         (bytes[2] as i32 <<  8) |
                                         (bytes[3] as i32 <<  0);
+                            assert!(p.wait(0).is_ok());
                             Err(super::decode_error(errno))
                         }
-                        Err(..) => Ok(Process { pid: pid }),
-                        Ok(..) => panic!("short read on the cloexec pipe"),
+                        Err(ref e) if e.kind == EndOfFile => Ok(p),
+                        Err(e) => {
+                            assert!(p.wait(0).is_ok());
+                            panic!("the cloexec pipe failed: {}", e)
+                        },
+                        Ok(..) => { // pipe I/O up to PIPE_BUF bytes should be atomic
+                            assert!(p.wait(0).is_ok());
+                            panic!("short read on the cloexec pipe")
+                        }
                     };
                 }
 
@@ -155,11 +166,13 @@ impl Process {
 
                 fn fail(output: &mut FileDesc) -> ! {
                     let errno = sys::os::errno();
+                    assert!(0 <= errno && errno <= i32::MAX as int);
                     let bytes = [
                         (errno >> 24) as u8,
                         (errno >> 16) as u8,
                         (errno >>  8) as u8,
                         (errno >>  0) as u8,
+                        b'f', b'a', b'i', b'l'
                     ];
                     assert!(output.write(&bytes).is_ok());
                     unsafe { libc::_exit(1) }
