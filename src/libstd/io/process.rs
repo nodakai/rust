@@ -748,6 +748,8 @@ mod tests {
     use time::Duration;
     use str;
     use rt::running_on_valgrind;
+    use iter::IteratorExt;
+    use libc::funcs::posix88::unistd;
 
     // FIXME(#10380) these tests should not all be ignored on android.
 
@@ -1212,5 +1214,40 @@ mod tests {
         let env = &cmd.env.unwrap();
         let val = env.get(&EnvKey("PATH".to_c_str()));
         assert!(val.unwrap() == &"bar".to_c_str());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_exec_check_failure() {
+        #[cfg(not(target_os = "macos"))]
+        const FIELDS: &'static str = "pid,sid,command";
+        #[cfg(target_os = "macos")]
+        const FIELDS: &'static str = "pid,sess,command";
+
+        let too_long = format!("/nosuchcmd{:0300}", 0u8);
+
+        for _ in range(0u32, 100) {
+            let invalid = process::Command::new(too_long.as_slice()).spawn();
+            assert!(invalid.is_err());
+        }
+
+        let my_sid = unsafe { unistd::getsid(0) };
+
+        let mut ps_cmd = process::Command::new("ps").args(&["-A", "-o", FIELDS]).spawn().unwrap();
+        let ps_output = ps_cmd.stdout.as_mut().expect("output from ps").read_to_string().unwrap();
+
+        let n_my_zombies = ps_output.split('\n').enumerate().filter_map(|(line_no, line)| {
+            if 0 < line_no {
+                line.split(' ').filter(|w| 0 < w.len()).enumerate().fold(None, |acc, (word_idx, w)| {
+                    if 0 < word_idx { acc.or(Some(w)) } else { None }
+                }).and_then(|sid_s| {
+                    if my_sid == from_str(sid_s).expect("Session ID string") &&
+                       line.contains("defunct")
+                    { Some(()) } else { None }
+                })
+            } else { None }
+        }).count();
+
+        assert!(n_my_zombies < 90);
     }
 }
