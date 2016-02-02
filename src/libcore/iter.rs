@@ -1075,12 +1075,35 @@ pub trait Iterator {
     /// The `3` is no longer there, because it was consumed in order to see if
     /// the iteration should stop, but wasn't placed back into the iterator or
     /// some similar thing.
+    ///
+    /// ```
+    /// let a = ["eins", "zwei", "drei", "vier"].iter().map(|s| String::from(*s)).
+    ///     collect::<Vec<_>>();
+    /// let mut iter = a.into_iter();
+    ///
+    /// {
+    ///     let mut iter = iter.by_ref().take_while(|s| ! s.starts_with('d') );
+    ///
+    ///     assert!(iter.falsy().unwrap() == "drei");
+    ///
+    ///     let mut back_to_vec = Vec::new();
+    ///     back_to_vec.extend(iter);
+    ///     assert!(back_to_vec.len() == 2);
+    ///     assert!(back_to_vec[0] == "eins");
+    ///     assert!(back_to_vec[1] == "zwei");
+    /// }
+    ///
+    /// let mut back_to_vec = Vec::new();
+    /// back_to_vec.extend(iter);
+    /// assert!(back_to_vec.len() == 1);
+    /// assert!(back_to_vec[0] == "vier");
+    /// ```
     #[inline]
     #[stable(feature = "rust1", since = "1.0.0")]
-    fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P> where
+    fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P, Self::Item> where
         Self: Sized, P: FnMut(&Self::Item) -> bool,
     {
-        TakeWhile{iter: self, flag: false, predicate: predicate}
+        TakeWhile{iter: self, flag: false, predicate: predicate, falsy: None}
     }
 
     /// Creates an iterator that skips the first `n` elements.
@@ -3748,10 +3771,19 @@ impl<I: Iterator, P> Iterator for SkipWhile<I, P>
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[derive(Clone)]
-pub struct TakeWhile<I, P> {
+pub struct TakeWhile<I, P, F> {
     iter: I,
     flag: bool,
     predicate: P,
+    falsy: Option<F>
+}
+
+impl<I: Iterator, P> TakeWhile<I, P, I::Item>
+    where P: FnMut(&I::Item) -> bool
+{
+    /// The first falsy item from the input stream, if exists
+    #[stable(feature = "rust1", since = "1.0.0")]
+    pub fn falsy(&mut self) -> &Option<I::Item> { &mut self.falsy }
 }
 
 #[stable(feature = "core_impl_debug", since = "1.9.0")]
@@ -3765,7 +3797,7 @@ impl<I: fmt::Debug, P> fmt::Debug for TakeWhile<I, P> {
 }
 
 #[stable(feature = "rust1", since = "1.0.0")]
-impl<I: Iterator, P> Iterator for TakeWhile<I, P>
+impl<I: Iterator, P> Iterator for TakeWhile<I, P, I::Item>
     where P: FnMut(&I::Item) -> bool
 {
     type Item = I::Item;
@@ -3780,6 +3812,7 @@ impl<I: Iterator, P> Iterator for TakeWhile<I, P>
                     Some(x)
                 } else {
                     self.flag = true;
+                    self.falsy = Some(x);
                     None
                 }
             })
