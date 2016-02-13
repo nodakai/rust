@@ -288,7 +288,7 @@ mod impls {
     #[stable(feature = "rust1", since = "1.0.0")]
     impl Hash for bool {
         fn hash<H: Hasher>(&self, state: &mut H) {
-            state.write_u8(*self as u8)
+            state.write_u8(if *self { 1 } else { 0 })
         }
     }
 

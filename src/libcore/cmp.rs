@@ -483,11 +483,16 @@ mod impls {
         }
     }
 
+    #[inline]
+    fn bcast(b: &bool) -> i32 {
+        if *b { 1 } else { 0 }
+    }
+
     #[stable(feature = "rust1", since = "1.0.0")]
     impl PartialOrd for bool {
         #[inline]
         fn partial_cmp(&self, other: &bool) -> Option<Ordering> {
-            (*self as u8).partial_cmp(&(*other as u8))
+            bcast(self).partial_cmp(&bcast(other))
         }
     }
 
@@ -533,7 +538,7 @@ mod impls {
     impl Ord for bool {
         #[inline]
         fn cmp(&self, other: &bool) -> Ordering {
-            (*self as u8).cmp(&(*other as u8))
+            bcast(self).cmp(&bcast(other))
         }
     }
 

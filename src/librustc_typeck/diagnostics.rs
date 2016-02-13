@@ -600,6 +600,18 @@ let x_is_nonzero = x != 0;
 ```
 "##,
 
+E0520: r##"
+It is not allowed to cast a bool to other types since Rust 1.8.  For a drop-in
+replacement, you can use the if-else syntax:
+
+```
+let b = true;
+
+let i: i32 = if b { 1 } else { 0 };
+// let i = b as i32; // not allowed
+```
+"##,
+
 E0055: r##"
 During a method call, a value is automatically dereferenced as many times as
 needed to make the value's type match the method's receiver. The catch is that
@@ -3699,3 +3711,8 @@ register_diagnostics! {
     E0520, // cannot specialize non-default item
     E0521  // redundant default implementations of trait
 }
+
+// Local Variables:
+// fill-column: 80
+// End:
+// vim: set textwidth=80:

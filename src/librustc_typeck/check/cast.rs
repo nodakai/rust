@@ -98,6 +98,7 @@ fn unsize_kind<'a,'tcx>(fcx: &FnCtxt<'a, 'tcx>,
 #[derive(Copy, Clone)]
 enum CastError {
     CastToBool,
+    CastFromBool,
     CastToChar,
     DifferingKinds,
     /// Cast of thin to fat raw ptr (eg. `*const () as *const [u8]`)
@@ -146,6 +147,11 @@ impl<'tcx> CastCheck<'tcx> {
             CastError::CastToBool => {
                 struct_span_err!(fcx.tcx().sess, self.span, E0054, "cannot cast as `bool`")
                     .fileline_help(self.span, "compare with zero instead")
+                    .emit();
+            }
+            CastError::CastFromBool => {
+                struct_span_err!(fcx.tcx().sess, self.span, E0520, "cannot cast a `bool` value")
+                    .fileline_help(self.span, "use `if ... { 1 } else { 0 } instead")
                     .emit();
             }
             CastError::CastToChar => {
@@ -270,14 +276,17 @@ impl<'tcx> CastCheck<'tcx> {
             // * -> Bool
             (_, Int(Bool)) => Err(CastError::CastToBool),
 
+            // Bool -> *
+            (Int(Bool), _) => Err(CastError::CastFromBool),
+
             // * -> Char
             (Int(U(ast::UintTy::U8)), Int(Char)) => Ok(CastKind::U8CharCast), // u8-char-cast
             (_, Int(Char)) => Err(CastError::CastToChar),
 
             // prim -> float,ptr
-            (Int(Bool), Float) | (Int(CEnum), Float) | (Int(Char), Float)
+            (Int(CEnum), Float) | (Int(Char), Float)
                 => Err(CastError::NeedViaInt),
-            (Int(Bool), Ptr(_)) | (Int(CEnum), Ptr(_)) | (Int(Char), Ptr(_))
+            (Int(CEnum), Ptr(_)) | (Int(Char), Ptr(_))
                 => Err(CastError::NeedViaUsize),
 
             // ptr -> *
@@ -294,7 +303,7 @@ impl<'tcx> CastCheck<'tcx> {
 
             // prim -> prim
             (Int(CEnum), Int(_)) => Ok(CastKind::EnumCast),
-            (Int(Char), Int(_)) | (Int(Bool), Int(_)) => Ok(CastKind::PrimIntCast),
+            (Int(Char), Int(_)) => Ok(CastKind::PrimIntCast),
 
             (Int(_), Int(_)) |
             (Int(_), Float) |
