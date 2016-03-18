@@ -697,7 +697,11 @@ impl RustcDefaultCalls {
     }
 }
 
-/// Returns a version string such as "0.12.0-dev".
+// These three functions were originally intended to provide some reflectional
+// information on the compiler version, but they are no longer very useful since
+// librustc_driver was market as "private",
+
+/// Returns a version string such as "1.9.0-dev".
 pub fn release_str() -> Option<&'static str> {
     option_env!("CFG_RELEASE")
 }
@@ -1097,8 +1101,12 @@ pub fn monitor<F: FnOnce() + Send + 'static>(f: F) {
                              errors::Level::Bug);
             }
 
-            let xs = ["the compiler unexpectedly panicked. this is a bug.".to_string(),
-                      format!("we would appreciate a bug report: {}", BUG_REPORT_URL)];
+            let xs = [format!("the compiler unexpectedly panicked. this is a bug."),
+                      format!("we would appreciate a bug report:"),
+                      format!("  {}", BUG_REPORT_URL),
+                      format!("version: {}", option_env!("CFG_VERSION").unwrap_or("unknown")),
+                      format!("host: {}", config::host_triple()),
+                      format!("arguments: {:?}", args)];
             for note in &xs {
                 handler.emit(&MultiSpan::new(),
                              &note[..],
