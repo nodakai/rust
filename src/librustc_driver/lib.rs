@@ -107,8 +107,7 @@ pub mod pretty;
 pub mod target_features;
 
 
-const BUG_REPORT_URL: &'static str = "https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.\
-                                      md#bug-reports";
+const BUG_REPORT_URL: &'static str = "rust-lang.org/contribute.html";
 
 #[inline]
 fn abort_msg(err_count: usize) -> String {
@@ -1002,30 +1001,45 @@ pub fn monitor<F: FnOnce() + Send + 'static>(args: &[String], f: F) {
         // Thread panicked without emitting a fatal diagnostic
         if !value.is::<errors::FatalError>() {
             let mut emitter = errors::emitter::BasicEmitter::stderr(errors::ColorConfig::Auto);
+            let mut note = |msg: &str| emitter.emit(None, msg, None, errors::Level::Note);
+            let mut bug = |msg: &str| emitter.emit(None, msg, None, errors::Level::Bug);
 
             // a .span_bug or .bug call has already printed what
             // it wants to print.
             if !value.is::<errors::ExplicitBug>() {
-                emitter.emit(None, "unexpected panic", None, errors::Level::Bug);
+                bug("unexpected panic");
             }
 
-            let xs = [format!("the compiler unexpectedly panicked. this is a bug."),
-                      format!("we would appreciate a bug report:"),
-                      format!("  {}", BUG_REPORT_URL),
-                      format!("version: {}", option_env!("CFG_VERSION").unwrap_or("unknown")),
-                      format!("host: {}", config::host_triple()),
-                      format!("arguments: {:?}", args)];
-            for note in &xs {
-                emitter.emit(None, &note[..], None, errors::Level::Note)
+            match bug_report::generate() {
+                Ok(path) => {
+                    note("you hit a bug in the compiler.");
+                    note(&format!("please send the below log to:\t{}", BUG_REPORT_URL));
+                    note(&format!("\t{}", path));
+                },
+                Err(e) => {
+                    bug("you hit a bug in the compiler.");
+                    bug("what's worse, it failed to log the details.");
+                    match e.kind {
+                        bug_report::ErrorKind::Helpless{ messages } => {
+                            for line in messages {
+                                bug("\t{}", &line),
+                            }
+                            bug("please send as much details as possible to:\t{}");
+                            bug(&format!("\t{}", BUG_REPORT_URL));
+                        },
+                        bug_report::ErrorKind::FileOutput{ path, reason } => {
+                            bug("output path:\t{}", path);
+                            bug("reason:\t{}", reason);
+                            bug("please make sure the output path is available and try again");
+                        },
+                    }
+                }
             }
             if match env::var_os("RUST_BACKTRACE") {
                 Some(val) => &val != "0",
                 None => false,
             } {
-                emitter.emit(None,
-                             "run with `RUST_BACKTRACE=1` for a backtrace",
-                             None,
-                             errors::Level::Note);
+                note("run with `RUST_BACKTRACE=1` for a backtrace");
             }
 
             println!("{}", str::from_utf8(&data.lock().unwrap()).unwrap());
