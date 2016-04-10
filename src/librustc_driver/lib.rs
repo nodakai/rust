@@ -105,7 +105,7 @@ pub mod test;
 pub mod driver;
 pub mod pretty;
 pub mod target_features;
-
+pub mod bug_report;
 
 const BUG_REPORT_URL: &'static str = "rust-lang.org/contribute.html";
 
@@ -1022,7 +1022,7 @@ pub fn monitor<F: FnOnce() + Send + 'static>(args: &[String], f: F) {
                     match e.kind {
                         bug_report::ErrorKind::Helpless{ messages } => {
                             for line in messages {
-                                bug("\t{}", &line),
+                                bug("\t{}", &line);
                             }
                             bug("please send as much details as possible to:\t{}");
                             bug(&format!("\t{}", BUG_REPORT_URL));
