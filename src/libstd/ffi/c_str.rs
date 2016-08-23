@@ -29,19 +29,15 @@ use str::{self, Utf8Error};
 use string::String;
 use vec::Vec;
 
-/// A type representing an owned C-compatible string
+/// An owned C-compatible string `CString` and its slice version `CStr`
 ///
-/// This type serves the primary purpose of being able to safely generate a
-/// C-compatible string from a Rust byte slice or vector. An instance of this
-/// type is a static guarantee that the underlying bytes contain no interior 0
-/// bytes and the final byte is 0.
+/// `CString` is a safe and owned C-compatible string. The constructors verify
+/// their parameters so that the underlying buffer is guaranteed to have
+/// a *single* NUL (0x00 byte) as its final element.
 ///
-/// A `CString` is created from either a byte slice or a byte vector. After
-/// being created, a `CString` predominately inherits all of its methods from
-/// the `Deref` implementation to `[c_char]`. Note that the underlying array
-/// is represented as an array of `c_char` as opposed to `u8`. A `u8` slice
-/// can be obtained with the `as_bytes` method.  Slices produced from a `CString`
-/// do *not* contain the trailing nul terminator unless otherwise specified.
+/// Once created, it can serve as a `CStr` via the `Deref` mechanism. A `u8`
+/// slice can be obtained with the `as_bytes` or `as_bytes_with_nul` methods,
+/// depending on the need for the trailing NUL.
 ///
 /// # Examples
 ///
@@ -268,8 +264,19 @@ impl CString {
 
     /// Returns the underlying byte buffer.
     ///
-    /// The returned buffer does **not** contain the trailing nul separator and
-    /// it is guaranteed to not have any interior nul bytes.
+    /// The returned `Vec<u8>` is guaranteed to contain **no** NUL, either in
+    /// the middle of it or at the end. Compare it with `into_bytes_with_nul`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use std::ffi::CString;
+    ///
+    /// let cstring = CString::new(Vec::from("ABC")).unwrap();
+    /// let new_u8v = cstring.into_bytes();
+    /// assert_eq!(Vec::from("ABC"), new_u8v);
+    /// assert_eq!(3, new_u8v.len());
+    /// ```
     #[stable(feature = "cstring_into", since = "1.7.0")]
     pub fn into_bytes(self) -> Vec<u8> {
         let mut vec = self.inner.into_vec();
@@ -279,7 +286,17 @@ impl CString {
     }
 
     /// Equivalent to the `into_bytes` function except that the returned vector
-    /// includes the trailing nul byte.
+    /// includes the trailing NUL.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use std::ffi::CString;
+    ///
+    /// let cstring = CString::new(Vec::from("ABC")).unwrap();
+    /// let new_u8v = cstring.into_bytes_with_nul();
+    /// assert_eq!(Vec::from("ABC\0"), new_u8v);
+    /// assert_eq!(4, new_u8v.len());
     #[stable(feature = "cstring_into", since = "1.7.0")]
     pub fn into_bytes_with_nul(self) -> Vec<u8> {
         self.inner.into_vec()
@@ -288,14 +305,25 @@ impl CString {
     /// Returns the contents of this `CString` as a slice of bytes.
     ///
     /// The returned slice does **not** contain the trailing nul separator and
-    /// it is guaranteed to not have any interior nul bytes.
+    /// it is guaranteed to not have any interior nul bytes. Compare it with
+    /// `as_bytes_with_nul`.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use std::ffi::CString;
+    ///
+    /// let cstring = CString::new(Vec::from("ABC")).unwrap();
+    /// assert_eq!("ABC".as_bytes(), cstring.as_bytes());
+    /// assert_eq!("ABC\0".as_bytes(), cstring.as_bytes_with_nul());
+    /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn as_bytes(&self) -> &[u8] {
         &self.inner[..self.inner.len() - 1]
     }
 
     /// Equivalent to the `as_bytes` function except that the returned slice
-    /// includes the trailing nul byte.
+    /// includes the trailing NUL.
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn as_bytes_with_nul(&self) -> &[u8] {
         &self.inner
