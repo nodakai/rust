@@ -18,9 +18,8 @@
 //! In theory if we get past this phase it's a bug if a build fails, but in
 //! practice that's likely not true!
 
-use std::collections::HashSet;
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fs;
 use std::process::Command;
 
@@ -29,8 +28,7 @@ use build_helper::output0;
 use Build;
 
 pub fn check(build: &mut Build) {
-    let mut checked = HashSet::new();
-    let path = env::var_os("PATH").unwrap_or(OsString::new());
+    let path = env::var_os("PATH").unwrap_or(Default::default());
     // On Windows, quotes are invalid characters for filename paths, and if
     // one is present as part of the PATH then that can lead to the system
     // being unable to identify the files properly. See
@@ -43,21 +41,15 @@ pub fn check(build: &mut Build) {
     let have_cmd = |cmd: &OsStr| {
         for path in env::split_paths(&path) {
             let target = path.join(cmd);
-            let mut cmd_alt = cmd.to_os_string();
-            cmd_alt.push(".exe");
             if target.is_file() ||
-               target.with_extension("exe").exists() ||
-               target.join(cmd_alt).exists() {
+               target.with_extension("exe").is_file() {
                 return Some(target);
             }
         }
         return None;
     };
 
-    let mut need_cmd = |cmd: &OsStr| {
-        if !checked.insert(cmd.to_owned()) {
-            return
-        }
+    let need_cmd = |cmd: &OsStr| {
         if have_cmd(cmd).is_none() {
             panic!("\n\ncouldn't find required command: {:?}\n\n", cmd);
         }
