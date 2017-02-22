@@ -85,13 +85,14 @@ pub fn cc2ar(cc: &Path, target: &str) -> Option<PathBuf> {
 }
 
 pub fn make(host: &str) -> PathBuf {
-    if host.contains("bitrig") || host.contains("dragonfly") ||
-        host.contains("freebsd") || host.contains("netbsd") ||
-        host.contains("openbsd") {
-        PathBuf::from("gmake")
-    } else {
-        PathBuf::from("make")
-    }
+    let bsds = [ "bitrig", "dragonfly", "freebsd", "netbsd", "openbsd" ];
+    PathBuf::from(
+        if bsds.iter().any(|s| host.contains(s)) {
+            "gmake"
+        } else {
+            "make"
+        }
+    )
 }
 
 pub fn output(cmd: &mut Command) -> String {
