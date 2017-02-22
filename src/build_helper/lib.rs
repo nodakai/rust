@@ -163,3 +163,14 @@ fn fail(s: String) -> ! {
     println!("\n\n{}\n\n", s);
     std::process::exit(1);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make() {
+        assert!(PathBuf::from("make") == make("x86_64-unknown-linux-gnu"));
+        assert!(PathBuf::from("gmake") == make("x86_64-pc-freebsd"));
+    }
+}
