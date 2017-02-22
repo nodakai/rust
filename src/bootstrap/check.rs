@@ -22,7 +22,7 @@ use std::fs;
 use std::path::{PathBuf, Path};
 use std::process::Command;
 
-use build_helper::output;
+use build_helper::output0;
 
 use {Build, Compiler, Mode};
 use dist;
@@ -194,7 +194,7 @@ pub fn compiletest(build: &Build,
         cmd.arg("--lldb-python-dir").arg(dir);
     }
     let llvm_config = build.llvm_config(target);
-    let llvm_version = output(Command::new(&llvm_config).arg("--version"));
+    let llvm_version = output0(&llvm_config, &["--version"]);
     cmd.arg("--llvm-version").arg(llvm_version);
 
     cmd.args(&build.flags.cmd.test_args());
@@ -210,8 +210,8 @@ pub fn compiletest(build: &Build,
     // Only pass correct values for these flags for the `run-make` suite as it
     // requires that a C++ compiler was configured which isn't always the case.
     if suite == "run-make" {
-        let llvm_components = output(Command::new(&llvm_config).arg("--components"));
-        let llvm_cxxflags = output(Command::new(&llvm_config).arg("--cxxflags"));
+        let llvm_components = output0(&llvm_config, &["--components"]);
+        let llvm_cxxflags = output0(&llvm_config, &["--cxxflags"]);
         cmd.arg("--cc").arg(build.cc(target))
            .arg("--cxx").arg(build.cxx(target))
            .arg("--cflags").arg(build.cflags(target).join(" "))
@@ -478,7 +478,7 @@ fn krate_android(build: &Build,
                               quiet = quiet,
                               args = build.flags.cmd.test_args().join(" "));
 
-        let output = output(Command::new("adb").arg("shell").arg(&program));
+        let output = output0("adb", &["shell", &program]);
         println!("{}", output);
 
         t!(fs::create_dir_all(build.out.join("tmp")));

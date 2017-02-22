@@ -618,7 +618,7 @@ fn parse_configure_path(path: &str) -> PathBuf {
         return path.into();
     }
 
-    let win_path = build_helper::output(Command::new("cygpath").arg("-w").arg(path));
+    let win_path = build_helper::output0(&["cygpath", "-w", path]);
     let win_path = win_path.trim();
 
     win_path.into()

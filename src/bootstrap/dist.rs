@@ -24,7 +24,7 @@ use std::io::{Read, Write};
 use std::path::{PathBuf, Path};
 use std::process::{Command, Stdio};
 
-use build_helper::output;
+use build_helper::{output, output0};
 
 #[cfg(not(target_os = "solaris"))]
 const SH_CMD: &'static str = "sh";
@@ -920,7 +920,7 @@ pub fn hash_and_sign(build: &Build) {
     let mut pass = String::new();
     t!(t!(File::open(&file)).read_to_string(&mut pass));
 
-    let today = output(Command::new("date").arg("+%Y-%m-%d"));
+    let today = output0("date", &["+%Y-%m-%d"]);
 
     cmd.arg(sign);
     cmd.arg(distdir(build));

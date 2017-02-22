@@ -24,7 +24,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::process::Command;
 
-use build_helper::output;
+use build_helper::output0;
 
 use Build;
 
@@ -182,7 +182,7 @@ pub fn check(build: &mut Build) {
             // There are three builds of cmake on windows: MSVC, MinGW, and
             // Cygwin. The Cygwin build does not have generators for Visual
             // Studio, so detect that here and error.
-            let out = output(Command::new("cmake").arg("--help"));
+            let out = output0("cmake", &["--help"]);
             if !out.contains("Visual Studio") {
                 panic!("
 cmake does not support Visual Studio generators.

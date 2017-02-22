@@ -84,7 +84,7 @@ use std::fs::{self, File};
 use std::path::{Component, PathBuf, Path};
 use std::process::Command;
 
-use build_helper::{run_silent, output, mtime};
+use build_helper::{run_silent, output, output0, mtime};
 
 use util::{exe, libdir, add_lib_path};
 
@@ -281,8 +281,8 @@ impl Build {
         self.verbose("collecting channel variables");
         channel::collect(self);
         // If local-rust is the same major.minor as the current version, then force a local-rebuild
-        let local_version_verbose = output(
-            Command::new(&self.rustc).arg("--version").arg("--verbose"));
+        let local_version_verbose = output0(
+            &self.rustc, &["--version", "--verbose"]);
         let local_release = local_version_verbose
             .lines().filter(|x| x.starts_with("release:"))
             .next().unwrap().trim_left_matches("release:").trim();
@@ -724,7 +724,7 @@ impl Build {
     fn llvm_filecheck(&self, target: &str) -> PathBuf {
         let target_config = self.config.target_config.get(target);
         if let Some(s) = target_config.and_then(|c| c.llvm_config.as_ref()) {
-            let llvm_bindir = output(Command::new(s).arg("--bindir"));
+            let llvm_bindir = output0(&s, &["--bindir"]);
             Path::new(llvm_bindir.trim()).join(exe("FileCheck", target))
         } else {
             let base = self.llvm_out(&self.config.build).join("build");

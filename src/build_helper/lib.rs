@@ -12,6 +12,7 @@
 
 extern crate filetime;
 
+use std::ffi::OsStr;
 use std::fs;
 use std::process::{Command, Stdio};
 use std::path::{Path, PathBuf};
@@ -93,6 +94,14 @@ pub fn make(host: &str) -> PathBuf {
             "make"
         }
     )
+}
+
+pub fn output0<S: AsRef<OsStr>, S1: AsRef<OsStr>>(cmd: S, args: &[S1]) -> String {
+    let mut c = Command::new(cmd);
+    for a in args {
+        c.arg(a);
+    }
+    output(&mut c)
 }
 
 pub fn output(cmd: &mut Command) -> String {

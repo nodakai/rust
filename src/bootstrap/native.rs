@@ -21,9 +21,8 @@
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
-use std::process::Command;
 
-use build_helper::output;
+use build_helper::output0;
 use cmake;
 use gcc;
 
@@ -150,8 +149,7 @@ fn check_llvm_version(build: &Build, llvm_config: &Path) {
         return
     }
 
-    let mut cmd = Command::new(llvm_config);
-    let version = output(cmd.arg("--version"));
+    let version = output0(llvm_config, &["--version"]);
     if version.starts_with("3.5") || version.starts_with("3.6") ||
        version.starts_with("3.7") {
         return
