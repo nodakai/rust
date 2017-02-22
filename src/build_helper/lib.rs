@@ -42,25 +42,25 @@ pub fn run(cmd: &mut Command) {
 pub fn run_silent(cmd: &mut Command) {
     let status = match cmd.status() {
         Ok(status) => status,
-        Err(e) => fail(&format!("failed to execute command: {:?}\nerror: {}",
-                                cmd, e)),
+        Err(e) => fail(format!("failed to execute command: {:?}\nerror: {}",
+                               cmd, e)),
     };
     if !status.success() {
-        fail(&format!("command did not execute successfully: {:?}\n\
-                       expected success, got: {}",
-                      cmd,
-                      status));
+        fail(format!("command did not execute successfully: {:?}\n\
+                      expected success, got: {}",
+                     cmd,
+                     status));
     }
 }
 
 pub fn gnu_target(target: &str) -> String {
     match target {
-        "i686-pc-windows-msvc" => "i686-pc-win32".to_string(),
-        "x86_64-pc-windows-msvc" => "x86_64-pc-win32".to_string(),
-        "i686-pc-windows-gnu" => "i686-w64-mingw32".to_string(),
-        "x86_64-pc-windows-gnu" => "x86_64-w64-mingw32".to_string(),
-        s => s.to_string(),
-    }
+        "i686-pc-windows-msvc" => "i686-pc-win32",
+        "x86_64-pc-windows-msvc" => "x86_64-pc-win32",
+        "i686-pc-windows-gnu" => "i686-w64-mingw32",
+        "x86_64-pc-windows-gnu" => "x86_64-w64-mingw32",
+        s => s,
+    }.to_string()
 }
 
 pub fn cc2ar(cc: &Path, target: &str) -> Option<PathBuf> {
@@ -97,7 +97,7 @@ pub fn make(host: &str) -> PathBuf {
 pub fn output(cmd: &mut Command) -> String {
     let output = match cmd.stderr(Stdio::inherit()).output() {
         Ok(status) => status,
-        Err(e) => fail(&format!("failed to execute command: {:?}\nerror: {}",
+        Err(e) => fail(format!("failed to execute command: {:?}\nerror: {}",
                                 cmd, e)),
     };
     if !output.status.success() {
@@ -159,7 +159,7 @@ fn dir_up_to_date(src: &Path, threshold: &FileTime) -> bool {
     })
 }
 
-fn fail(s: &str) -> ! {
+fn fail(s: String) -> ! {
     println!("\n\n{}\n\n", s);
     std::process::exit(1);
 }
