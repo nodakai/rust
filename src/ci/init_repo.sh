@@ -42,7 +42,7 @@ if [ ! -f "$cache_valid_file" ]; then
     mkdir "$CACHE_DIR"
 else
     # Ignore errors while gathering information about the possible brokenness
-    # of the git repo since our gathered info will well us something is wrong
+    # of the git repo since our gathered info will tell us something is wrong
     set +o errexit
     stat_lines=$(cd "$cache_src_dir" && git status --porcelain | wc -l)
     stat_ec=$(cd "$cache_src_dir" && git status >/dev/null 2>&1; echo $?)
