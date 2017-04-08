@@ -142,6 +142,8 @@ install:
 
 test_script:
   - if not exist C:\cache\rustsrc\NUL mkdir C:\cache\rustsrc
+  - sh -c "cat /c/Users/appveyor/AppData/Local/Temp/1/build-cache-logs/*.log"
+  - exit 1
   - sh src/ci/init_repo.sh . /c/cache/rustsrc
   - set SRC=.
   - set NO_CCACHE=1
@@ -149,7 +151,6 @@ test_script:
 
 on_failure:
   - cat %CD%\sccache.log || exit 0
-  - cat C:\Users\appveyor\AppData\Local\Temp\1\build-cache-logs\*.log || exit 0
 
 cache:
   - C:\cache\rustsrc
