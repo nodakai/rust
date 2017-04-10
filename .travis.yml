@@ -145,6 +145,7 @@ before_script:
       du . | sort -nr | head -n100
 
 script:
+  - exit 1
   - >
       if [ "$ALLOW_PR" = "" ] && [ "$TRAVIS_BRANCH" != "auto" ]; then
           echo skipping, not a full build
